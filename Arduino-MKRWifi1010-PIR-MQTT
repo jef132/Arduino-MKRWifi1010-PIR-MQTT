@@ -13,7 +13,7 @@ int pirState = LOW;             // we start, assuming no motion detected
 int val = 0;                    // variable for reading the pin status
 
 
- #include "arduino_secrets.h" 
+#include "arduino_secrets.h" 
 ///////please enter your sensitive data in the Secret tab/arduino_secrets.h
 char ssid[] = SECRET_SSID;        // your network SSID (name)
 char pass[] = SECRET_PASS;    // your network password (use for WPA, or use as key for WEP)
@@ -21,13 +21,13 @@ int status = WL_IDLE_STATUS;     // the Wifi radio's status
 
 
 //MQTT Settings 
-const char broker[] = "192.168.1.xx";
+const char broker[] = "192.168.1.24"; //MQTT broker server 
 const char topic[] = "homeassistant/binary_sensor/bedroom/state";
 const char msgMotionDetected[] = "Detected";
 const char msgNoMotionDetected[] = "Clear";
 const char clientID[] = "arduino";
-const char uname[] = "xxxxxxx";
-const char pword[] = "xxxxxxx";
+const char uname[] = "mqtt"; //mqtt username 
+const char pword[] = "mqtt"; //mqtt password
 int qos = 1;
 WiFiClient mkr1010Client;
 PubSubClient mqtt(mkr1010Client);
@@ -66,8 +66,8 @@ void setup() {
 void reconnectMQTT(){
     //MQTT connection details 
     Serial.println("Connecting to MQTT server");
-    mqtt.setServer(broker, 1883);
-    mqtt.connect(clientID, uname, pword);
+    mqtt.setServer(broker, 1883); //set mqtt server
+    mqtt.connect(clientID, uname, pword); //connect to mqtt server with credentials
     
   }
 
