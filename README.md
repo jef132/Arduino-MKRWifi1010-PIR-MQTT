@@ -8,5 +8,5 @@ Arduino MKR WIFI 1010 with PIR Sensor sending to MQTT
   <li>MQTT Service running on Home Assistant</li>
 </ul>
 
-<b><U>Description</b></u>
+<b><U>Description</b></u><br>
 This code is used with an Arduino MKR WIFI 1010 and PIR sensor to send events to a MQTT server running on a home assistant server over wifi
