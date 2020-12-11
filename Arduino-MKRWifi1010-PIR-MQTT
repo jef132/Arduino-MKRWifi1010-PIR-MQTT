@@ -1,0 +1,164 @@
+/*
+ * Arduino MKR Wifi 1010 with PIR Sensor sending alerts to MQTT server
+ */
+
+
+#include <SPI.h>
+#include <WiFiNINA.h>
+#include <PubSubClient.h>
+
+int ledPin = 13;                // choose the pin for the LED
+int inputPin = 2;               // choose the input pin (for PIR sensor)
+int pirState = LOW;             // we start, assuming no motion detected
+int val = 0;                    // variable for reading the pin status
+
+
+#include "arduino_secrets.h" 
+///////please enter your sensitive data in the Secret tab/arduino_secrets.h
+char ssid[] = SECRET_SSID;        // your network SSID (name)
+char pass[] = SECRET_PASS;    // your network password (use for WPA, or use as key for WEP)
+int status = WL_IDLE_STATUS;     // the Wifi radio's status
+
+
+//MQTT Settings 
+const char broker[] = "192.168.1.xxx"; //MQTT broker server 
+const char topic[] = "homeassistant/binary_sensor/bedroom/state";
+const char msgMotionDetected[] = "Detected";
+const char msgNoMotionDetected[] = "Clear";
+const char clientID[] = "arduino";
+const char uname[] = "xxxxxx"; //mqtt username 
+const char pword[] = "xxxxxx"; //mqtt password
+int qos = 1;
+WiFiClient mkr1010Client;
+PubSubClient mqtt(mkr1010Client);
+
+//////////////////////////////////////////////
+void setup() {
+  //pinMode(ledPin, OUTPUT);      // declare LED as output
+  pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(inputPin, INPUT);     // declare sensor as input
+ 
+  Serial.begin(9600);
+  Serial.println("Starting....!");
+
+  // attempt to connect to Wifi network:
+  while (status != WL_CONNECTED) {
+    Serial.print("Attempting to connect to WPA SSID: ");
+    Serial.println(ssid);
+    // Connect to WPA/WPA2 network:
+    status = WiFi.begin(ssid, pass);
+
+    // wait 10 seconds for connection:
+    delay(10000);
+  }    
+    // you're connected now, so print out the data:
+    Serial.print("You're connected to the network ");
+    printCurrentNet();
+    printWifiData();
+
+    //connect to MQTT server
+    reconnectMQTT();
+    
+}
+
+/////////////////////////////////////////////////////
+//MQTT connect code
+void reconnectMQTT(){
+    //MQTT connection details 
+    Serial.println("Connecting to MQTT server");
+    mqtt.setServer(broker, 1883); //set mqtt server
+    mqtt.connect(clientID, uname, pword); //connect to mqtt server with credentials
+    
+  }
+
+///////////////////////////////////////////////////
+void printWifiData() {
+  // print your board's IP address:
+  IPAddress ip = WiFi.localIP();
+  Serial.print("IP Address: ");
+  Serial.println(ip);
+  Serial.println(ip);
+
+  // print your MAC address:
+  byte mac[6];
+  WiFi.macAddress(mac);
+  Serial.print("MAC address: ");
+  printMacAddress(mac);
+}
+
+///////////////////////////////////////////////////
+void printCurrentNet() {
+  // print the SSID of the network you're attached to:
+  Serial.print("SSID: ");
+  Serial.println(WiFi.SSID());
+
+  // print the MAC address of the router you're attached to:
+  byte bssid[6];
+  WiFi.BSSID(bssid);
+  Serial.print("BSSID: ");
+  printMacAddress(bssid);
+
+  // print the received signal strength:
+  long rssi = WiFi.RSSI();
+  Serial.print("signal strength (RSSI):");
+  Serial.println(rssi);
+
+  // print the encryption type:
+  byte encryption = WiFi.encryptionType();
+  Serial.print("Encryption Type:");
+  Serial.println(encryption, HEX);
+  Serial.println();
+}
+
+///////////////////////////////////////////////////
+void printMacAddress(byte mac[]) {
+  for (int i = 5; i >= 0; i--) {
+    if (mac[i] < 16) {
+      Serial.print("0");
+    }
+    Serial.print(mac[i], HEX);
+    if (i > 0) {
+      Serial.print(":");
+    }
+  }
+  Serial.println();
+}
+
+///////////////////////////////////////////////////
+void loop(){
+  val = digitalRead(inputPin);  // read input value
+  if (val == HIGH) {            // check if the input is HIGH
+    //digitalWrite(ledPin, HIGH);  // turn LED ON
+    digitalWrite(LED_BUILTIN, HIGH);
+    
+    
+    if (pirState == LOW) {
+      // we have just turned on
+      Serial.println("Motion detected!");
+      // We only want to print on the output change, not state
+      pirState = HIGH;
+      if(mqtt.connected()){
+        mqtt.publish(topic,msgMotionDetected); //MQTT publish message
+      }else{
+        reconnectMQTT();
+        mqtt.publish(topic,msgMotionDetected); //MQTT publish message    
+        }
+    }
+  } else {
+    //digitalWrite(ledPin, LOW); // turn LED OFF
+    digitalWrite(LED_BUILTIN, LOW);
+   
+    if (pirState == HIGH){
+      // we have just turned of
+      Serial.println("Motion ended!");
+      // We only want to print on the output change, not state
+      pirState = LOW;
+        if(mqtt.connected()){
+        mqtt.publish(topic,msgNoMotionDetected); //MQTT publish message
+      }else{
+        reconnectMQTT();
+        mqtt.publish(topic,msgNoMotionDetected); //MQTT publish message    
+        }
+    }
+  }
+}
